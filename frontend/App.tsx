@@ -17,8 +17,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import io, { Socket } from 'socket.io-client';
 
 // CONFIGURATION - Update these after deployment
-const API_URL = 'http://localhost:3000/api';
-const SOCKET_URL = 'http://localhost:3000';
+const API_URL = 'https://alcovia-assign.onrender.com/api';
+const SOCKET_URL = 'https://alcovia-assign.onrender.com';
 const DEMO_STUDENT_ID = '123e4567-e89b-12d3-a456-426614174000';
 
 type StudentStatus = 'on_track' | 'needs_intervention' | 'remedial_assigned';

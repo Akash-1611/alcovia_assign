@@ -1,0 +1,200 @@
+{
+  "name": "Alcovia Mentor Dispatcher",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "student-intervention",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook - Student Failed",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "auto-generated"
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@alcovia.com",
+        "toEmail": "={{ $json.body.mentor_email || 'mentor@alcovia.com' }}",
+        "subject": "🚨 Student Intervention Required - {{ $json.body.student_name }}",
+        "emailType": "html",
+        "message": "=<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; }\n    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n    .alert { background: #fee; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0; }\n    .stats { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }\n    .stat-row { display: flex; justify-content: space-between; margin: 10px 0; padding: 10px; border-bottom: 1px solid #eee; }\n    .stat-label { font-weight: bold; color: #666; }\n    .stat-value { color: #ef4444; font-weight: bold; }\n    .stat-value.good { color: #10b981; }\n    .action-buttons { margin: 30px 0; text-align: center; }\n    .button { display: inline-block; padding: 15px 40px; margin: 10px; background: #6366f1; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; }\n    .button:hover { background: #4f46e5; }\n    .warning { color: #f59e0b; font-weight: bold; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>🚨 Intervention Required</h1>\n      <p>A student needs your immediate attention</p>\n    </div>\n    <div class=\"content\">\n      <div class=\"alert\">\n        <strong>⚠️ Student Performance Below Threshold</strong><br>\n        Immediate mentor review required to unlock student access.\n      </div>\n      \n      <h2>Student Information</h2>\n      <div class=\"stats\">\n        <div class=\"stat-row\">\n          <span class=\"stat-label\">Name:</span>\n          <span class=\"stat-value\">{{ $json.body.student_name }}</span>\n        </div>\n        <div class=\"stat-row\">\n          <span class=\"stat-label\">Email:</span>\n          <span class=\"stat-value\">{{ $json.body.student_email }}</span>\n        </div>\n        <div class=\"stat-row\">\n          <span class=\"stat-label\">Student ID:</span>\n          <span>{{ $json.body.student_id }}</span>\n        </div>\n      </div>\n\n      <h2>Performance Metrics</h2>\n      <div class=\"stats\">\n        <div class=\"stat-row\">\n          <span class=\"stat-label\">Quiz Score:</span>\n          <span class=\"stat-value\">{{ $json.body.quiz_score }}/10 <small>(Required: >7)</small></span>\n        </div>\n        <div class=\"stat-row\">\n          <span class=\"stat-label\">Focus Time:</span>\n          <span class=\"stat-value\">{{ $json.body.focus_minutes }} min <small>(Required: >60)</small></span>\n        </div>\n        {{#if $json.body.cheating_detected}}\n        <div class=\"stat-row\">\n          <span class=\"stat-label\">⚠️ Cheating Detected:</span>\n          <span class=\"stat-value\">YES - {{ $json.body.tab_switches }} tab switches</span>\n        </div>\n        {{/if}}\n      </div>\n\n      <h2>Action Required</h2>\n      <p>The student's app is currently <strong>LOCKED</strong>. They cannot proceed until you assign a remedial task.</p>\n      \n      <div class=\"action-buttons\">\n        <a href=\"{{ $json.approval_link }}\" class=\"button\">Review & Assign Task</a>\n      </div>\n\n      <p class=\"warning\">⏱️ Student is waiting. Please respond within 12 hours to prevent auto-unlock.</p>\n\n      <hr>\n      <p style=\"font-size: 12px; color: #999;\">\n        Intervention ID: {{ $json.body.intervention_id }}<br>\n        Daily Log ID: {{ $json.body.daily_log_id }}<br>\n        Triggered: {{ $now }}<br>\n        Alcovia Intervention Engine\n      </p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Send Email to Mentor",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [450, 300],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "your-gmail-credentials",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "form",
+        "options": {
+          "approvalMode": "manual",
+          "formTitle": "Assign Remedial Task",
+          "formDescription": "=Review student performance and assign a remedial task to unlock their access.\n\nStudent: {{ $json.body.student_name }}\nQuiz Score: {{ $json.body.quiz_score }}/10\nFocus Time: {{ $json.body.focus_minutes }} minutes\nCheating: {{ $json.body.cheating_detected ? 'YES ⚠️' : 'NO' }}",
+          "formFields": {
+            "values": [
+              {
+                "fieldLabel": "Remedial Task",
+                "fieldType": "textarea",
+                "requiredField": true,
+                "fieldOptions": {
+                  "placeholder": "E.g., Read Chapter 4 and complete practice exercises"
+                }
+              }
+            ]
+          },
+          "formSubmittedText": "✅ Task assigned! The student will be notified immediately."
+        }
+      },
+      "id": "wait-for-mentor",
+      "name": "Wait for Mentor Approval",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "webhookId": "auto-generated-wait"
+    },
+    {
+      "parameters": {
+        "url": "=https://your-backend-url.com/api/assign-intervention",
+        "authentication": "none",
+        "method": "POST",
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "student_id",
+              "value": "={{ $('Webhook - Student Failed').item.json.body.student_id }}"
+            },
+            {
+              "name": "intervention_id",
+              "value": "={{ $('Webhook - Student Failed').item.json.body.intervention_id }}"
+            },
+            {
+              "name": "remedial_task",
+              "value": "={{ $json.remedial_task }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "assign-intervention",
+      "name": "Assign Intervention (Call Backend)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.success }}",
+              "value2": "true"
+            }
+          ]
+        }
+      },
+      "id": "check-success",
+      "name": "Check API Response",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@alcovia.com",
+        "toEmail": "={{ $('Webhook - Student Failed').item.json.body.student_email }}",
+        "subject": "✅ Your Access Has Been Restored",
+        "emailType": "html",
+        "message": "=<html>\n<body style=\"font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9;\">\n  <div style=\"max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px;\">\n    <h1 style=\"color: #10b981;\">✅ Access Restored!</h1>\n    <p>Hi {{ $('Webhook - Student Failed').item.json.body.student_name }},</p>\n    <p>Your mentor has reviewed your performance and assigned a remedial task.</p>\n    <div style=\"background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #6366f1;\">\n      <h3>Your Task:</h3>\n      <p style=\"font-size: 16px;\">{{ $json.remedial_task }}</p>\n    </div>\n    <p>Please log back into your app and complete this task to return to normal access.</p>\n    <p style=\"color: #666; font-size: 14px; margin-top: 30px;\">— Alcovia Intervention Engine</p>\n  </div>\n</body>\n</html>"
+      },
+      "id": "notify-student",
+      "name": "Notify Student (Success)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2,
+      "position": [1250, 250],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "your-gmail-credentials",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook - Student Failed": {
+      "main": [
+        [
+          {
+            "node": "Send Email to Mentor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email to Mentor": {
+      "main": [
+        [
+          {
+            "node": "Wait for Mentor Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for Mentor Approval": {
+      "main": [
+        [
+          {
+            "node": "Assign Intervention (Call Backend)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assign Intervention (Call Backend)": {
+      "main": [
+        [
+          {
+            "node": "Check API Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check API Response": {
+      "main": [
+        [
+          {
+            "node": "Notify Student (Success)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "1",
+  "meta": {
+    "instanceId": "your-n8n-instance"
+  },
+  "tags": []
+}
+
